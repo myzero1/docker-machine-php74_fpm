@@ -1,21 +1,14 @@
-FROM centos:7
-WORKDIR "/app"
+FROM php:7.2-fpm-stretch
 
-RUN cd /etc/yum.repos.d/ && rm -rf *.* && curl -O http://mirrors.aliyun.com/repo/Centos-7.repo && curl -O http://mirrors.aliyun.com/repo/epel-7.repo && curl -O https://mirrors.aliyun.com/remi/enterprise/remi-release-7.rpm && yum clean all && yum makecache
+RUN echo "deb http://mirrors.aliyun.com/debian/ stretch main non-free contrib" > /etc/apt/sources.list && echo "deb-src http://mirrors.aliyun.com/debian/ stretch main non-free contrib" >> /etc/apt/sources.list && echo "deb http://mirrors.aliyun.com/debian-security stretch/updates main" >> /etc/apt/sources.list && echo "deb-src http://mirrors.aliyun.com/debian-security stretch/updates main" >> /etc/apt/sources.list && echo "deb http://mirrors.aliyun.com/debian/ stretch-updates main non-free contrib" >> /etc/apt/sources.list && echo "deb-src http://mirrors.aliyun.com/debian/ stretch-updates main non-free contrib" >> /etc/apt/sources.list && echo "deb http://mirrors.aliyun.com/debian/ stretch-backports main non-free contrib" >> /etc/apt/sources.list && echo "deb-src http://mirrors.aliyun.com/debian/ stretch-backports main non-free contrib" >> /etc/apt/sources.list && rm -f /etc/apt/sources.list.d/* && apt-get update && apt-get install -y libfreetype6-dev libjpeg62-turbo-dev libpng-dev && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ --with-png-dir=/usr/include && docker-php-ext-install -j$(nproc) gd && docker-php-ext-install pdo_mysql exif zip
 
-RUN yum -y install https://rpms.remirepo.net/enterprise/remi-release-7.rpm && yum -y install yum-utils && yum-config-manager --enable remi-php74 && yum -y update && yum -y install php74-php-cli php74-php-fpm
+RUN docker-php-ext-enable pdo_mysql exif zip gd
 
-RUN ln -s /bin/php74 /bin/php
+RUN apt-get update && apt-get install -y cron
 
-RUN yum -y install php74-php-gd && yum -y install php74-php-mbstring && yum -y install php74-php-dom && yum -y install php74-php-zip && yum -y install php74-php-bcmath && yum -y install php74-php-pdo
+RUN apt-get install -y procps
 
-RUN php -r "copy('https://install.phpcomposer.com/installer', 'composer-setup.php');" && php composer-setup.php && php -r "unlink('composer-setup.php');" && mv composer.phar /usr/local/bin/composer
+RUN docker-php-ext-install mysqli && docker-php-ext-enable mysqli
 
-RUN yum -y install git && yum -y install wget
-
-# RUN wget https://nodejs.org/dist/v12.16.2/node-v12.16.2-linux-x64.tar.xz RUN wget https://cdn.npm.taobao.org/dist/node/v12.16.2/node-v12.16.2-linux-x64.tar.xz && xz -d node-v12.16.2-linux-x64.tar.xz && tar -xf node-v12.16.2-linux-x64.tar && mv node-v12.16.2-linux-x64 /usr/local/share/node-v12.16.2-linux-x64 && ln -s /usr/local/share/node-v12.16.2-linux-x64/bin/node /usr/bin/node && ln -s /usr/local/share/node-v12.16.2-linux-x64/bin/npm /usr/bin/npm && rm -rf node-v12.16.2-linux-x64.tar
-
-# RUN wget https://dl.google.com/go/go1.14.2.linux-amd64.tar.gz && #     tar -C /usr/local -xzf go1.14.2.linux-amd64.tar.gz && #     echo 'export PATH=$PATH:/usr/local/go/bin' >> /etc/profile && #     source /etc/profile && #     echo 'source /etc/profile' > /etc/rc.d/rc.local && #     echo 'source /etc/profile' >> /etc/bashrc
-RUN yum -y install go
-
-CMD ["php-fpm"]
+EXPOSE 9000
+CMD ["service cron start && php-fpm"]
